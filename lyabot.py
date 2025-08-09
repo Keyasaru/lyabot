@@ -95,7 +95,8 @@ def iniciar_mensajes_automaticos(updater):
 # MAIN
 # ======================
 def main():
-    updater = Updater(TELEGRAM_TOKEN, use_context=True)
+    updater = Updater(TELEGRAM_TOKEN)
+
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler("start", start))
