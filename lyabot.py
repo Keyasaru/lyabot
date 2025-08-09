@@ -96,11 +96,10 @@ def iniciar_mensajes_automaticos(updater):
 # ======================
 def main():
     updater = Updater(TELEGRAM_TOKEN)
-
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, manejar_mensaje))
+    dp.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, manejar_mensaje))
 
     iniciar_mensajes_automaticos(updater)
 
@@ -109,3 +108,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
