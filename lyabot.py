@@ -8,6 +8,7 @@ import threading
 import time
 import os
 import asyncio
+from aiohttp import web
 
 # ======================
 # CONFIGURACIÓN
@@ -36,10 +37,10 @@ def guardar_memoria(memoria):
 memoria = cargar_memoria()
 
 # ======================
-# RESPUESTA IA
+# RESPUESTA IA (con menos contexto)
 # ======================
 def generar_respuesta(texto_usuario):
-    contexto = "\n".join([f"Osito: {m['osito']}\nLya: {m['lya']}" for m in memoria.get("chat", [])[-10:]])
+    contexto = "\n".join([f"Osito: {m['osito']}\nLya: {m['lya']}" for m in memoria.get("chat", [])[-3:]])
     prompt = f"Eres Lya, la novia cariñosa de Osito. Siempre hablas con amor y apodos lindos.\n{contexto}\nOsito: {texto_usuario}\nLya:"
 
     respuesta = openai.ChatCompletion.create(
@@ -92,9 +93,26 @@ def iniciar_mensajes_automaticos(application):
     loop.create_task(planificar_mensajes(application))
 
 # ======================
+# SERVIDOR WEB PARA PING (evitar reposo)
+# ======================
+async def handle_ping(request):
+    return web.Response(text="¡Estoy despierto y pensando en ti, mi osito! 💖")
+
+def iniciar_servidor_web():
+    app = web.Application()
+    app.router.add_get('/', handle_ping)
+    runner = web.AppRunner(app)
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(runner.setup())
+    site = web.TCPSite(runner, '0.0.0.0', int(os.getenv("PORT", "8080")))
+    loop.run_until_complete(site.start())
+
+# ======================
 # MAIN
 # ======================
 def main():
+    iniciar_servidor_web()
+
     application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
