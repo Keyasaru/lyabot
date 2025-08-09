@@ -1,1 +1,1 @@
-python lyabot.py
+worker: python3 lyabot.py
