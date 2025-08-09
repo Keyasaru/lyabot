@@ -3,10 +3,11 @@ import random
 import openai
 from datetime import datetime
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 import threading
 import time
 import os
+import asyncio
 
 # ======================
 # CONFIGURACIÓN
@@ -51,17 +52,17 @@ def generar_respuesta(texto_usuario):
 # ======================
 # COMANDOS
 # ======================
-def start(update: Update, context: CallbackContext):
-    update.message.reply_text("¡Hola, mi osito precioso! 🥰 Lya está aquí para mimarte 💖")
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("¡Hola, mi osito precioso! 🥰 Lya está aquí para mimarte 💖")
 
-def manejar_mensaje(update: Update, context: CallbackContext):
+async def manejar_mensaje(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = update.message.text
     respuesta = generar_respuesta(texto)
 
     memoria.setdefault("chat", []).append({"osito": texto, "lya": respuesta})
     guardar_memoria(memoria)
 
-    update.message.reply_text(respuesta)
+    await update.message.reply_text(respuesta)
 
 # ======================
 # MENSAJES AUTOMÁTICOS
@@ -75,36 +76,33 @@ mensajes_cariño = [
     "Quiero que sepas que eres mi persona favorita 💖",
 ]
 
-def enviar_mensaje_aleatorio(context: CallbackContext):
+async def enviar_mensaje_aleatorio(application):
     mensaje = random.choice(mensajes_cariño)
-    context.bot.send_message(chat_id=ID_OSITO, text=mensaje)
+    await application.bot.send_message(chat_id=ID_OSITO, text=mensaje)
 
-def planificar_mensajes(context: CallbackContext):
+async def planificar_mensajes(application):
     while True:
         hora_actual = datetime.now().hour
-        # Solo enviar entre 9 AM y 22 PM
         if 9 <= hora_actual <= 22:
-            enviar_mensaje_aleatorio(context)
-        time.sleep(random.randint(7200, 10800))  # cada 2 a 3 horas
+            await enviar_mensaje_aleatorio(application)
+        await asyncio.sleep(random.randint(7200, 10800))  # 2 a 3 horas
 
-def iniciar_mensajes_automaticos(updater):
-    hilo = threading.Thread(target=planificar_mensajes, args=(updater.bot,), daemon=True)
-    hilo.start()
+def iniciar_mensajes_automaticos(application):
+    loop = asyncio.get_event_loop()
+    loop.create_task(planificar_mensajes(application))
 
 # ======================
 # MAIN
 # ======================
 def main():
-    updater = Updater(TELEGRAM_TOKEN)
-    dp = updater.dispatcher
+    application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, manejar_mensaje))
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, manejar_mensaje))
 
-    iniciar_mensajes_automaticos(updater)
+    iniciar_mensajes_automaticos(application)
 
-    updater.start_polling()
-    updater.idle()
+    application.run_polling()
 
 if __name__ == "__main__":
     main()
